@@ -9,13 +9,13 @@ class UserModel {
     this.rfid,
     this.name,
     this.balance,
-    this.lastLogin,
+    this.lastEntry,
   });
 
   String rfid;
   String name;
   int balance;
-  int lastLogin;
+  int lastEntry;
 
   factory UserModel.fromJson(String str) => UserModel.fromMap(json.decode(str));
 
@@ -24,14 +24,14 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> json) => UserModel(
         rfid: json["rfid"],
         name: json["name"],
-        balance: json["balance"],
-        lastLogin: json["last_login"],
+        balance: json["balance"] == null ? 0 : json["balance"],
+        lastEntry: json["last_entry"] == null ? 0 : json["last_entry"],
       );
 
   Map<String, dynamic> toMap() => {
         "rfid": rfid,
         "name": name,
         "balance": balance,
-        "last_login": lastLogin,
+        "last_entry": lastEntry,
       };
 }
