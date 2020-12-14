@@ -102,15 +102,15 @@ app.post('/recharge', (req, res) => {
 app.post('/create', (req, res) => {
     let rfid = req.body.rfid
     let name = req.body.name
+    console.log(req.body)
     db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
         if (rows[0] != null) {
-            res.send('na')
+            res.status(404).send('na')
         }
         else
-            db.query(`INSERT INTO userinfo (rfid, name, balance, last_login, is_login) values ('${rfid}','${name}',0,0,0)`, (err, rows, field) => {
+            db.query(`INSERT INTO userinfo (rfid, name) values ('${rfid}','${name}')`, (err, rows, field) => {
                 res.send('ok')
             })
-
     })
 })
 
