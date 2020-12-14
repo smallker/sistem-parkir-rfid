@@ -27,15 +27,14 @@ app.get('/', (req, res) => {
 
 app.get('/userinfo', (req, res) => {
     let rfid = req.query.rfid
-    db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
+    console.log(`info : ${rfid}`)
+    db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         try {
-            if (rows[0] != null) {
+            if (rows[0] != null)
                 res.send(rows[0])
-            }
-            else
-                res.status(404).send('na')
-
+            else res.status(404).send('na')
         } catch (error) {
+            console.log(error)
             res.status(404).send('na')
         }
     })
@@ -44,12 +43,23 @@ app.get('/userinfo', (req, res) => {
 app.get('/entry', (req, res) => {
     let now = Date.now()
     let rfid = req.query.rfid
-    db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
+    db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         try {
-            if (rows[0] != null)
-                db.query(`UPDATE userinfo set last_entry = ${now}`, (err, rows, field) => {
-                    res.send('ok')
-                })
+            if (rows[0] != null) {
+                let balance = rows[0].balance
+                let islogin = rows[0].is_login
+                if (balance > tarif) {
+                    
+                    if(islogin == 0){
+                        db.query(`UPDATE userinfo set last_entry = ${now}, is_login = 1 where rfid = '${rfid}'`, (err, rows, field) => {
+                            // res.send(`${balance}`)
+                        })
+                    }
+                    res.send(balance)
+                }
+                else res.status(308).send('saldo habis')
+            }
+
             else
                 res.status(404).send('na')
 
@@ -60,16 +70,20 @@ app.get('/entry', (req, res) => {
 })
 
 app.get('/exit', (req, res) => {
-    
     let now = Date.now()
     let rfid = req.query.rfid
-    db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
+    db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         try {
-            if (rows[0] != null){
-                let charge = Math.round(((now - rows[0].last_entry) / (3600*1000)) * tarif)
-                db.query(`UPDATE userinfo set balance = balance - ${charge}`, (err, rows, field) => {
-                    res.send('ok')
-                })
+            if (rows[0] != null) {
+                let balance = rows[0].balance
+                if (balance > tarif) {
+                    let charge = Math.round(((now - rows[0].last_entry) / (3600 * 1000)) * tarif)
+                    let newbalance = balance - charge
+                    db.query(`UPDATE userinfo set balance = ${newbalance}`, (err, rows2, field) => {
+                        res.send(`${newbalance} `)
+                    })
+                }
+                else res.status(308).send('saldo habis')
             }
             else
                 res.status(404).send('na')
@@ -83,10 +97,11 @@ app.get('/exit', (req, res) => {
 app.post('/recharge', (req, res) => {
     let rfid = req.body.rfid
     let balance = req.body.balance
-    db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
+    console.log(`rfid : ${rfid} saldo : ${balance}`)
+    db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         try {
             if (rows[0] != null) {
-                db.query(`UPDATE userinfo set balance=balance+${balance} where rfid = ${rfid}`, (err, rows, field) => {
+                db.query(`UPDATE userinfo set balance=balance + ${balance} where rfid = '${rfid}'`, (err, rows, field) => {
                     res.send('OK')
                 })
             }
@@ -103,7 +118,7 @@ app.post('/create', (req, res) => {
     let rfid = req.body.rfid
     let name = req.body.name
     console.log(req.body)
-    db.query(`SELECT * from userinfo where rfid = ${rfid}`, (err, rows, field) => {
+    db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         if (rows[0] != null) {
             res.status(404).send('na')
         }
