@@ -144,7 +144,7 @@ class UserDialog {
   static addBalance() async {
     TextEditingController balance = TextEditingController();
     Get.defaultDialog(
-      title: 'Buat akun',
+      title: 'Tambah Saldo',
       content: Column(
         children: [
           TextFormField(

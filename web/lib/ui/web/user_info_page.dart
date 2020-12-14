@@ -55,7 +55,8 @@ class UserInfoPage extends StatelessWidget {
                       : DateTime.fromMillisecondsSinceEpoch(
                               snapshot.user.lastEntry)
                           .toLocal()
-                          .toString(),
+                          .toString()
+                          .split('.')[0],
                 ),
                 FlatButton.icon(
                   color: Colors.blue,

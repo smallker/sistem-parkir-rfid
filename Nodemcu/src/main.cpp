@@ -6,11 +6,10 @@
 #define TX_NODE D2
 #define SSID "bolt"
 #define PASS "11111111"
-#define URL "http://192.168.43.44:3000/"
+const String BASE_URL = "http://192.168.43.44:3000/";
 
 SoftwareSerial ard(RX_NODE, TX_NODE);
 HTTPClient http;
-int no_pasien;
 void setup()
 {
   Serial.begin(9600);
@@ -28,50 +27,39 @@ void loop()
 {
   if (ard.available() > 0)
   {
-    String data = ard.readString();
-    if (data.charAt(0) == 'f'){
-      Serial.println("frekuensi");
-      if(data.charAt(1) == '0'){
-        data.remove(0,2);
-        Serial.println(data);
-        http.begin((String)URL+"tbw");
-        http.addHeader("content-type","application/json");
-        http.POST("{\"no_pasien\":"+(String)no_pasien+",\"tbw\":"+data+"}");
-      }
-      else
-      {
-        data.remove(0,2);
-        Serial.println(data);
-        http.begin((String)URL+"ecw");
-        http.addHeader("content-type","application/json");
-        http.POST("{\"no_pasien\":"+(String)no_pasien+",\"ecw\":"+data+"}");
-      }
-      ard.print("f");
-      ard.write(13);
-    }
-    if (data.charAt(0) == 'd')
+    String data = ard.readStringUntil(1);
+    Serial.println(data.charAt(0) == '0' ? "Masuk" : "Keluar");
+    if (data.charAt(0) == '0')
     {
-      Serial.println("data");
-      data.remove(0, 1);
-      Serial.println(data);
-      no_pasien = data.toInt();
-      http.begin((String)URL+"getperson");
-      http.addHeader("content-type", "application/json");
-      int rescode = http.POST("{\"no_pasien\":" + data + "}");
-      if (rescode == HTTP_CODE_OK)
-      {
-        String http_data = http.getString();
-        Serial.println(http_data);
-        ard.print(http_data);
-        ard.write(13);
-      }
-      else
-      {
-        Serial.println(http.getString());
-        ard.print("na");
-        ard.write(13);
-      }
+      data.remove(0, 2);
+      http.begin(BASE_URL + "entry?rfid=" + (String)data);
     }
-  }
+    else
+    {
+      data.remove(0, 2);
+      http.begin(BASE_URL + "exit?rfid=" + (String)data);
+    }
+    Serial.println(data);
+    int response = http.GET();
+    if (response == HTTP_CODE_OK)
+    {
+      Serial.println(http.getString());
+      ard.print("Saldo : " + http.getString());
+      ard.write(1);
+    }
+    else if (response == HTTP_CODE_INTERNAL_SERVER_ERROR)
+    {
+      Serial.println("saldo habis");
+      ard.print("saldo habis");
+      ard.write(1);
+    }
+    else
+    {
+      Serial.println("Belum terdaftar");
+      ard.print("ID: "+(String)data);
+      ard.write(1);
+    }
+    http.end();
+    }
   delay(10);
 }

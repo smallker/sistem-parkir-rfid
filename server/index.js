@@ -32,10 +32,10 @@ app.get('/userinfo', (req, res) => {
         try {
             if (rows[0] != null)
                 res.send(rows[0])
-            else res.status(404).send('na')
+            else res.sendStatus(404)
         } catch (error) {
             console.log(error)
-            res.status(404).send('na')
+            res.sendStatus(404)
         }
     })
 })
@@ -43,28 +43,28 @@ app.get('/userinfo', (req, res) => {
 app.get('/entry', (req, res) => {
     let now = Date.now()
     let rfid = req.query.rfid
+    console.log(rfid)
     db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         try {
             if (rows[0] != null) {
                 let balance = rows[0].balance
                 let islogin = rows[0].is_login
                 if (balance > tarif) {
-                    
-                    if(islogin == 0){
+                    res.send(`${balance}`)
+                    if (islogin == 0) {
                         db.query(`UPDATE userinfo set last_entry = ${now}, is_login = 1 where rfid = '${rfid}'`, (err, rows, field) => {
                             // res.send(`${balance}`)
                         })
                     }
-                    res.send(balance)
                 }
-                else res.status(308).send('saldo habis')
+                else res.sendStatus(500)
             }
-
             else
-                res.status(404).send('na')
+                res.sendStatus(404)
 
         } catch (error) {
-            res.status(404).send('na')
+            console.log(error)
+            res.sendStatus(404)
         }
     })
 })
@@ -79,17 +79,25 @@ app.get('/exit', (req, res) => {
                 if (balance > tarif) {
                     let charge = Math.round(((now - rows[0].last_entry) / (3600 * 1000)) * tarif)
                     let newbalance = balance - charge
-                    db.query(`UPDATE userinfo set balance = ${newbalance}`, (err, rows2, field) => {
-                        res.send(`${newbalance} `)
-                    })
+                    let islogin = rows[0].is_login
+                    if (islogin == 1) {
+                        db.query(`UPDATE userinfo set balance = ${newbalance}, is_login=0 where rfid = '${rfid}'`, (err, rows2, field) => {
+                            res.send(`${newbalance} `)
+                        })
+                    }
+                    else
+                        db.query(`SELECT * from userinfo WHERE rfid = '${rfid}'`, (err, rows2, field) => {
+                            res.send(`${rows2[0].balance}`)
+                        })
+
                 }
-                else res.status(308).send('saldo habis')
+                else res.sendStatus(500)
             }
             else
-                res.status(404).send('na')
+                res.sendStatus(404)
 
         } catch (error) {
-            res.status(404).send('na')
+            res.sendStatus(404)
         }
     })
 })
@@ -106,10 +114,10 @@ app.post('/recharge', (req, res) => {
                 })
             }
             else
-                res.status(404).send('na')
+                res.sendStatus(404)
 
         } catch (error) {
-            res.status(404).send('na')
+            res.sendStatus(404)
         }
     })
 })
@@ -120,7 +128,7 @@ app.post('/create', (req, res) => {
     console.log(req.body)
     db.query(`SELECT * from userinfo where rfid = '${rfid}'`, (err, rows, field) => {
         if (rows[0] != null) {
-            res.status(404).send('na')
+            res.sendStatus(404)
         }
         else
             db.query(`INSERT INTO userinfo (rfid, name) values ('${rfid}','${name}')`, (err, rows, field) => {
