@@ -14,6 +14,7 @@
 #define SRV2_PIN 5
 #define NR_OF_READERS 2
 
+#define MAX_CAPACITY 2
 byte ssPins[] = {RFID_MASUK, RFID_KELUAR};
 
 MFRC522 mfrc522[NR_OF_READERS];
@@ -22,13 +23,17 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Servo masuk;
 Servo keluar;
 int active_reader;
+int jumlah_kendaraan;
 void dump_byte_array(byte *buffer, byte bufferSize, int reader);
+
 void setup()
 {
   Serial.begin(9600); // Initialize serial communications with the PC
   data.begin(9600);
   masuk.attach(SRV1_PIN);
   keluar.attach(SRV2_PIN);
+  masuk.write(0);
+  keluar.write(0);
   SPI.begin(); // Init SPI bus
   for (uint8_t reader = 0; reader < NR_OF_READERS; reader++)
   {
@@ -45,6 +50,10 @@ void setup()
   lcd.print("    OTOMATIS    ");
   delay(2000);
   lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Max  : " + (String)MAX_CAPACITY);
+  lcd.setCursor(0, 1);
+  lcd.print("Sisa : " + (String)(MAX_CAPACITY - jumlah_kendaraan));
 }
 
 void loop()
@@ -62,21 +71,39 @@ void loop()
   if (data.available() > 0)
   {
     String readData = data.readStringUntil(1);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    active_reader == 0 ? lcd.print("Masuk") : lcd.print("Keluar");
+    lcd.setCursor(0, 1);
+    lcd.print(readData);
+    Serial.println("Jumlah kendaraan : " + (String)jumlah_kendaraan);
     if (readData.charAt(0) == 'S')
     {
-      lcd.setCursor(0, 0);
-      active_reader == 0 ? lcd.print("Masuk") : lcd.print("Keluar");
-      lcd.setCursor(0, 1);
-      lcd.print(readData);
-      delay(5000);
+      if (active_reader == 0)
+      {
+        jumlah_kendaraan++;
+        masuk.write(90);
+        delay(5000);
+        masuk.write(0);
+      }
+      else
+      {
+        if (jumlah_kendaraan != 0)
+        {
+          jumlah_kendaraan--;
+        }
+        keluar.write(90);
+        delay(5000);
+        keluar.write(0);
+      }
       lcd.clear();
     }
-    else if(readData.charAt(0) == 'I')
+    else if (readData.charAt(0) == 'I')
     {
       lcd.clear();
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.print(readData);
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.print("Belum terdaftar");
       delay(5000);
       lcd.clear();
@@ -84,11 +111,15 @@ void loop()
     else
     {
       lcd.clear();
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.print(readData);
       delay(5000);
       lcd.clear();
     }
+    lcd.setCursor(0, 0);
+    lcd.print("Max  : " + (String)MAX_CAPACITY);
+    lcd.setCursor(0, 1);
+    lcd.print("Sisa : " + (String)(MAX_CAPACITY - jumlah_kendaraan));
   }
 }
 
@@ -96,12 +127,20 @@ void dump_byte_array(byte *buffer, byte bufferSize, int reader)
 {
   active_reader = reader;
   Serial.println("\nReader : " + (String)reader + "\n");
-  data.print(reader);
-  data.print(",");
-  for (byte i = 0; i < bufferSize; i++)
+  if (jumlah_kendaraan < MAX_CAPACITY || reader == 1)
   {
-    Serial.print(buffer[i], HEX);
-    data.print(buffer[i], HEX);
+    data.print(reader);
+    data.print(",");
+    for (byte i = 0; i < bufferSize; i++)
+    {
+      Serial.print(buffer[i], HEX);
+      data.print(buffer[i], HEX);
+    }
+    data.write(1);
   }
-  data.write(1);
+  else
+  {
+    lcd.clear();
+    lcd.print("Sudah penuh");
+  }
 }
